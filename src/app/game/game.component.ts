@@ -29,7 +29,45 @@ export class GameComponent implements OnInit {
 
 
 
-
+  private updateCanvas(): void {
+    fetch('Dungeon_01.tsv')  //TODO Find out how to link the tsv file
+    .then(response => response.text())
+    .then(data => {
+      // Split the TSV data into rows
+      const rows = data.split('\n');
+      // Get the number of rows and columns
+      const numCols = rows[0].split('\t').length;
+      const numRows = rows.length;
+      // Set the cell width and height
+      const cellWidth = 21;
+      const cellHeight = 21;
+      // Set the canvas width and height based on the number of rows and columns
+      const canvasWidth = numCols * cellWidth;
+      const canvasHeight = numRows * cellHeight;
+      // Get the canvas element
+      const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+      // Set the canvas width and height
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      // Get the 2D context
+      const ctx = canvas.getContext('2d');
+      // Loop through each row and column
+      for (let i = 0; i < numRows; i++) {
+        for (let j = 0; j < numCols; j++) {
+          // Get the value of the current cell
+          const cellValue = rows[i].split('\t')[j];
+          // Set the fill style to black if the cell is blank, or white if it has a value
+          if (cellValue === '') {
+            ctx.fillStyle = 'black';
+          } else {
+            ctx.fillStyle = 'white';
+          }
+          // Fill the current cell
+          ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+        }
+      }
+    });
+  }
 
 
 
@@ -40,7 +78,6 @@ export class GameComponent implements OnInit {
     this.canvas = document.getElementById('canvas');
     this.player = document.getElementById('player');
 
-    
 
 
 
@@ -76,10 +113,15 @@ export class GameComponent implements OnInit {
     // Update game logic here
   }
 
+
+
+
+
+  
   draw(): void {
     // Clear canvas
     const ctx = this.canvas.getContext('2d');
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.updateCanvas()
 
     // Draw player
     this.player.style.left = this.playerX + 'px';

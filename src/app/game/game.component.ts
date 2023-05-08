@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+// const fs = require('fs')
+// require.extensions['.tsv'] = function (module, filename) {module.exports = fs.readFileSync(filename, 'utf8');};
+// const levelString = require('./Dungeon_01.tsv')
 
 
 
@@ -30,9 +33,10 @@ export class GameComponent implements OnInit {
 
 
   private updateCanvas(): void {
-    fetch('Dungeon_01.tsv')  //TODO Find out how to link the tsv file
+    fetch('./assets/Dungeon_Sprites/Dungeon_01.tsv')  //TODO Find out how to link the tsv file
     .then(response => response.text())
     .then(data => {
+      console.log(data);
       // Split the TSV data into rows
       const rows = data.split('\n');
       // Get the number of rows and columns
@@ -77,6 +81,9 @@ export class GameComponent implements OnInit {
     // Initialize canvas and player elements
     this.canvas = document.getElementById('canvas');
     this.player = document.getElementById('player');
+    this.updateCanvas()
+    // console.log(fetch('./assets/Dungeon_Sprites/Dungeon_01.tsv'))
+    
 
 
 
@@ -121,7 +128,7 @@ export class GameComponent implements OnInit {
   draw(): void {
     // Clear canvas
     const ctx = this.canvas.getContext('2d');
-    this.updateCanvas()
+    // this.updateCanvas()
 
     // Draw player
     this.player.style.left = this.playerX + 'px';

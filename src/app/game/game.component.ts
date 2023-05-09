@@ -15,12 +15,12 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
   styleUrls: ['./game.component.scss']
 })
 export class GameComponent implements OnInit {
- 
+  playerSpeed: number = 2;
   canvas: any;
   player: any;
   playerX: number = 50;
   playerY: number = 50;
-
+  CurrentKey: any = {up:0,down:0,left:0,right:0}
   constructor(
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
@@ -33,7 +33,7 @@ export class GameComponent implements OnInit {
 
 
   private updateCanvas(): void {
-    fetch('./assets/Dungeon_Sprites/Dungeon_01.tsv')  //TODO Find out how to link the tsv file
+    fetch('./assets/Dungeon_Sprites/Dungeon 02.tsv')  //TODO Find out how to link the tsv file
     .then(response => response.text())
     .then(data => {
       console.log(data);
@@ -50,6 +50,7 @@ export class GameComponent implements OnInit {
       const canvasHeight = numRows * cellHeight;
       // Get the canvas element
       const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+      
       // Set the canvas width and height
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
@@ -70,6 +71,9 @@ export class GameComponent implements OnInit {
           ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
         }
       }
+
+
+      
     });
   }
 
@@ -95,20 +99,54 @@ export class GameComponent implements OnInit {
       this.savePosition();
     }, 16);
 
+
+    
     // Handle user input
     document.addEventListener('keydown', (event) => {
       switch(event.key) {
         case 'ArrowUp':
-          this.playerY -= 10;
+          //this.playerY -= 10;
+          this.CurrentKey.up = 1
           break;
         case 'ArrowDown':
-          this.playerY += 10;
+          //this.playerY += 10;
+          this.CurrentKey.down = -1
           break;
         case 'ArrowLeft':
-          this.playerX -= 10;
+          //this.playerX -= 10;
+          this.CurrentKey.left = -1
           break;
         case 'ArrowRight':
-          this.playerX += 10; 
+          //this.playerX += 10; 
+          this.CurrentKey.right = 1
+          break;
+      }
+    });
+    document.addEventListener('keyup', (event) => {
+      switch(event.key) {
+        case 'ArrowUp':
+          //this.playerY -= 10;  
+          if (this.CurrentKey.up === 1){
+            this.CurrentKey.up = 0
+          }
+          break;
+        case 'ArrowDown':
+          //this.playerY += 10;
+          if (this.CurrentKey.down === -1){
+            this.CurrentKey.down = 0
+          }
+          break;
+        case 'ArrowLeft':
+          //this.playerX -= 10;
+          if (this.CurrentKey.left === -1){
+            this.CurrentKey.left = 0
+          }
+          break;
+        case 'ArrowRight':
+          //this.playerX += 10; 
+          if (this.CurrentKey.right === 1){
+            this.CurrentKey.right = 0
+          } 
           break;
       }
     });
@@ -118,6 +156,11 @@ export class GameComponent implements OnInit {
 
   update(): void {
     // Update game logic here
+    
+    //console.log(`Vertical: ${this.CurrentKey.up + this.CurrentKey.down} Horizontal: ${this.CurrentKey.left + this.CurrentKey.right}`)
+    //console.log(`X: ${this.playerX} Y: ${this.playerY}`)
+    this.playerX += (this.CurrentKey.left + this.CurrentKey.right) * this.playerSpeed
+    this.playerY -= (this.CurrentKey.up + this.CurrentKey.down) * this.playerSpeed
   }
 
 

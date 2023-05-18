@@ -16,7 +16,10 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 })
 export class GameComponent implements OnInit {
   playerSpeed: number = 2;
+  lineLength: any;
   canvas: any;
+  offscreenCanvas: HTMLCanvasElement;
+  offscreenContext: CanvasRenderingContext2D;
   player: any;
   playerX: number = 100;
   playerY: number = 100;
@@ -34,10 +37,14 @@ export class GameComponent implements OnInit {
 
 
   private updateCanvas(): void {
+    
     fetch('./assets/Dungeon_Sprites/Dungeon 01.tsv')  //TODO Find out how to link the tsv file
     .then(response => response.text())
     .then(data => {
       console.log(data);
+      
+
+
       
       // Split the TSV data into rows
       const rows = data.split('\n');
@@ -52,6 +59,8 @@ export class GameComponent implements OnInit {
       const canvasWidth = numCols * cellWidth;
       const canvasHeight = numRows * cellHeight;
       // Get the canvas element
+
+
       const canvas = document.getElementById('canvas') as HTMLCanvasElement;
       
       // Set the canvas width and height
@@ -72,6 +81,11 @@ export class GameComponent implements OnInit {
             ctx.fillStyle = 'black';
           } else {
             ctx.fillStyle = 'white';
+            let a = Math.random()
+            let b = Math.random()
+            if (a === b){
+              ctx.fillStyle = 'yellow'
+            }
           }
           // Fill the current cell
           ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
@@ -81,6 +95,7 @@ export class GameComponent implements OnInit {
 
       
     });
+    
   }
 
 
@@ -95,13 +110,17 @@ export class GameComponent implements OnInit {
     // console.log(fetch('./assets/Dungeon_Sprites/Dungeon_01.tsv'))
     
 
+    
+
 
 
 
     // Set up game loop
     setInterval(() => {
+      this.updateCanvas()
       this.update();
       this.draw();
+      
       //this.savePosition();
     }, 16);
 
@@ -160,46 +179,117 @@ export class GameComponent implements OnInit {
 
   
 
-  update(): void {
-    // Update game logic here
-
-    //Canvas
-    const canvas = this.canvas
-    const ctx = canvas.getContext('2d')
-
-    const playerSize = 4
-    const newPlayerX = this.playerX + (this.CurrentKey.left*playerSize + this.CurrentKey.right*playerSize) * this.playerSpeed;
-    const newPlayerY = this.playerY - (this.CurrentKey.up*playerSize + this.CurrentKey.down*playerSize) * this.playerSpeed;
-
-
-    //Future Tile
-    function findTile(x,y,map){
-      const rowIndex = Math.floor(y / 21)-3;
-      const colIndex = Math.floor(x / 21);
-      const currentIndex = colIndex+21*rowIndex
-      const levelData = map
-      const tile = levelData[currentIndex]
-      return tile
-    }
-    
-    const tile = {x:'',y:''}
-    tile.x = findTile(newPlayerX,this.playerY,this.mapData)
-    tile.y = findTile(this.playerX,newPlayerY,this.mapData)
-
-
-
-    //Update Player
-    if ( tile.x === 'F' || tile.x === 'DL' || tile.x === 'DB' || tile.x === 'DT' || tile.x === 'DPL'){
-      this.playerX += (this.CurrentKey.left + this.CurrentKey.right) * this.playerSpeed
+    update(): void {
+      // Update game logic here
       
-    }
-    if ( tile.y === 'F' || tile.y === 'DL' || tile.y === 'DB' || tile.y === 'DT' || tile.y === 'DPL'){
-      this.playerY -= (this.CurrentKey.up + this.CurrentKey.down) * this.playerSpeed
+      //Canvas
+      const canvas = this.canvas
+      const ctx = canvas.getContext('2d')
+      //ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      const playerSize = 4
+      const newPlayerX = this.playerX + (this.CurrentKey.left*playerSize + this.CurrentKey.right*playerSize) * this.playerSpeed;
+      const newPlayerY = this.playerY - (this.CurrentKey.up*playerSize + this.CurrentKey.down*playerSize) * this.playerSpeed;
+
+      const keymap = this.mapData
+      //Future Tile
+      function findTile(x,y,map){
+        const rowIndex = Math.floor(y / 21)-3;
+        const colIndex = Math.floor(x / 21);
+        const currentIndex = colIndex+21*rowIndex
+        const levelData = map
+        const tile = levelData[currentIndex]
+        return tile
+      }
       
-    }
 
 
-    
+
+      const tile = {x:'',y:''}
+      tile.x = findTile(newPlayerX,this.playerY,this.mapData)
+      tile.y = findTile(this.playerX,newPlayerY,this.mapData)
+
+
+
+      //Update Player
+      if ( tile.x === 'F' || tile.x === 'DL' || tile.x === 'DB' || tile.x === 'DT' || tile.x === 'DPL'){
+        this.playerX += (this.CurrentKey.left + this.CurrentKey.right) * this.playerSpeed
+        
+      }
+      if ( tile.y === 'F' || tile.y === 'DL' || tile.y === 'DB' || tile.y === 'DT' || tile.y === 'DPL'){
+        this.playerY -= (this.CurrentKey.up + this.CurrentKey.down) * this.playerSpeed
+        
+      }
+      
+      const lineThickness = 2; // Adjust as needed
+      const lineDensity = 20
+      // Emit lines at 15-degree intervals
+
+      let type = 'inside'
+
+      if( type === 'inside'){
+        for (let angle = 0; angle <= 360; angle += 360/lineDensity) {
+          const radians = angle * Math.PI / 180; // Convert angle to radians
+         
+          // Calculate line length based on wall collision
+          this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+        
+          // Calculate endpoint coordinates
+          const endX = this.playerX + this.lineLength * Math.cos(radians);
+          const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+        
+          ctx.beginPath();
+          ctx.moveTo(this.playerX, this.playerY - 60); //60 is the 3 square offset
+          ctx.lineTo(endX, endY);
+          ctx.lineWidth = lineThickness;
+          ctx.strokeStyle = 'red';
+          ctx.stroke();
+        }
+      }
+      if (type === 'outside'){
+        ctx.beginPath();
+        ctx.moveTo(this.playerX, this.playerY - 60); //60 is the 3 square offset
+        for (let angle = 0; angle <= 360; angle += 360/lineDensity) {
+          const radians = angle * Math.PI / 180; // Convert angle to radians
+         
+          // Calculate line length based on wall collision
+          this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+        
+          // Calculate endpoint coordinates
+          const endX = this.playerX + this.lineLength * Math.cos(radians);
+          const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+        
+
+          ctx.lineTo(endX, endY);
+          ctx.lineWidth = lineThickness;
+          ctx.strokeStyle = 'red';
+          
+        }
+        ctx.stroke();
+      }
+      
+      
+      
+
+
+
+      function calculateLineLength(x, y, radians) {
+        let lineLength = 0;
+        let a = 0;
+        let cx = x;
+        let cy = y;
+      
+        
+        let btile = findTile(cx, cy, keymap);
+        while (btile === 'F' || btile === 'DL' || btile === 'DB' || btile === 'DT' || btile === 'DPL') {
+          //console.log(Math.cos(radians)+", "+Math.sin(radians))
+          btile = findTile(cx + a * Math.cos(radians), cy + a * Math.sin(radians), keymap);
+          a++;
+        }
+      
+        return lineLength + a;
+      }
+
+
   }
 
 

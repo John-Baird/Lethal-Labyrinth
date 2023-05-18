@@ -1,6 +1,14 @@
 canvas {
     border: 1px solid #000;
+    position: absolute;
+    #canvas{
+      z-index: 0;
+    }
+    #raytrace{
+      z-index: 1;
+    }
   }
+
   
   #player {
     position: absolute;

@@ -12,7 +12,7 @@ export class GameComponent implements OnInit {
   lineLength: any;
   goal: any = {x:0,y:0};
   goalReset: any = false;
-  level: any = 1;
+  level: any = 8;
   canvas: any;
   rayCanvas: any;
   floorTiles: any;
@@ -104,6 +104,7 @@ export class GameComponent implements OnInit {
         rayCanvas.width = canvasWidth;
         rayCanvas.height = canvasHeight;
         const ctx = canvas.getContext('2d');
+        let floortile = []
         let floortileX = []
         let floortileY = []
         let map = [];
@@ -123,21 +124,81 @@ export class GameComponent implements OnInit {
               ///Find index of cellvalue  
               //console.log(mapC.indexOf(`${cellValue}+${C-1}`))
               //floortile.push(mapC.indexOf(`${cellValue}+${C-1}`))
+              floortile.push({x:j,y:i})
               floortileX.push(j)
               floortileY.push(i)
             }
             ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
           }
         }
-        let exit = Math.floor(Math.random()*floortileX.length)
+        let a
+        if(this.level >= 10 || this.level == "Boss"){
+           a = "Boss"
+           console.log("boss room time")
+        }
+        else{
+          a = this.level+1 
+        }
+        console.log(`a is ${a} and ${typeof(a)}`)
+      fetch(`./assets/Dungeon_Sprites/Dungeon ${a}.tsv`)
+      .then(response => response.text())
+      .then(data => {
+        const Nrows = data.split('\n');
+        const NnumCols = Nrows[0].split('\t').length;
+        const NnumRows = Nrows.length;
+        let Nfloortile = []
+        let Nmap = [];
+        //let mapC = []
+        //let C = 0
+        for (let i = 0; i < NnumRows; i++) {
+          for (let j = 0; j < NnumCols; j++) {
+            const NcellValue = Nrows[i].split('\t')[j];
+            Nmap.push(NcellValue);
+            //C++
+            //mapC.push(`${cellValue}+${C-1}`)
+            
+            if (NcellValue === '') {
+              //ctx.fillStyle = 'black';
+            } else {
+              //ctx.fillStyle = 'white';
+              ///Find index of cellvalue  
+              //console.log(mapC.indexOf(`${cellValue}+${C-1}`))
+              //floortile.push(mapC.indexOf(`${cellValue}+${C-1}`))
+              Nfloortile.push({x:j,y:i})
+              
+            }
+            //ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+          }
+        }
+        let TrueFloor = []
+        console.log(Nfloortile.length)
+        console.log(floortile.length)
+        
+        for (let i = 0; i< Nfloortile.length; i++){
+          for(let j = 0; j < floortile.length; j++){
+            //console.log(`${Nfloortile[i]} & ${floortile[j]}`)
+            if (Nfloortile[i].x === floortile[j].x){
+              if(Nfloortile[i].y === floortile[j].y){
+                TrueFloor.push(Nfloortile[i])
+                
+              }
+              
+            }
+          }
+        }
+        //console.log(TrueFloor)
+        let exit = Math.floor(Math.random()*TrueFloor.length)
         ctx.fillStyle = 'yellow'
-        console.log(exit)
-        ctx.fillRect(floortileX[exit]*21,floortileY[exit]*21,cellWidth,cellHeight)
-        this.goal.x = floortileX[exit]
-        this.goal.y = floortileY[exit]
+        //console.log(exit)
+        ctx.fillRect(TrueFloor[exit].x*21,TrueFloor[exit].y*21,cellWidth,cellHeight)
+        this.goal.x = TrueFloor[exit].x
+        this.goal.y = TrueFloor[exit].y
         console.log(this.goal)
         this.goalReset = true
         this.mapData = map 
+      })
+      
+
       });
   }
 
@@ -212,7 +273,7 @@ export class GameComponent implements OnInit {
     const lineThickness = 1;
     const lineDensity = 1650;
 
-    let type = 'reverse1';
+    let type = 'outside';
 
     if (type === 'inside') {
       for (let angle = 0; angle <= 360; angle += 360 / lineDensity) {

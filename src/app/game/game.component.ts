@@ -10,8 +10,12 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 export class GameComponent implements OnInit {
   playerSpeed: number = 2;
   lineLength: any;
+  goal: any = {x:0,y:0};
+  goalReset: any = false;
+  level: any = 1;
   canvas: any;
   rayCanvas: any;
+  floorTiles: any;
   player: any;
   playerX: number = 100;
   playerY: number = 100;
@@ -79,7 +83,10 @@ export class GameComponent implements OnInit {
   }
 
   updateCanvas(): void {
-    fetch('./assets/Dungeon_Sprites/Dungeon 01.tsv')
+    if (this.level > 10){
+      this.level = 'Boss'
+    }
+    fetch(`./assets/Dungeon_Sprites/Dungeon ${this.level}.tsv`)
       .then(response => response.text())
       .then(data => {
         const rows = data.split('\n');
@@ -97,25 +104,55 @@ export class GameComponent implements OnInit {
         rayCanvas.width = canvasWidth;
         rayCanvas.height = canvasHeight;
         const ctx = canvas.getContext('2d');
-
+        let floortileX = []
+        let floortileY = []
         let map = [];
+        //let mapC = []
+        //let C = 0
         for (let i = 0; i < numRows; i++) {
           for (let j = 0; j < numCols; j++) {
             const cellValue = rows[i].split('\t')[j];
             map.push(cellValue);
+            //C++
+            //mapC.push(`${cellValue}+${C-1}`)
+            
             if (cellValue === '') {
               ctx.fillStyle = 'black';
             } else {
               ctx.fillStyle = 'white';
+              ///Find index of cellvalue  
+              //console.log(mapC.indexOf(`${cellValue}+${C-1}`))
+              //floortile.push(mapC.indexOf(`${cellValue}+${C-1}`))
+              floortileX.push(j)
+              floortileY.push(i)
             }
             ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
           }
         }
-        this.mapData = map;
+        let exit = Math.floor(Math.random()*floortileX.length)
+        ctx.fillStyle = 'yellow'
+        console.log(exit)
+        ctx.fillRect(floortileX[exit]*21,floortileY[exit]*21,cellWidth,cellHeight)
+        this.goal.x = floortileX[exit]
+        this.goal.y = floortileY[exit]
+        console.log(this.goal)
+        this.goalReset = true
+        this.mapData = map 
       });
   }
 
   update(): void {
+    if(Math.floor(this.playerX/21) === this.goal.x && Math.floor(this.playerY/21)-3 === this.goal.y){
+      if(this.goalReset === true){
+        if(this.level <= 10){
+          this.level++
+        }
+        
+        this.goalReset = false
+        this.updateCanvas()
+      }
+      
+    }
     const canvas = this.rayCanvas;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -143,13 +180,18 @@ export class GameComponent implements OnInit {
     const tile = { x: '', y: '' };
     tile.x = findTile(newPlayerX, this.playerY, this.mapData);
     tile.y = findTile(this.playerX, newPlayerY, this.mapData);
-
+    //console.log(Math.floor(this.playerX/21))
+    
     if (
       tile.x === 'F' ||
       tile.x === 'DL' ||
       tile.x === 'DB' ||
       tile.x === 'DT' ||
-      tile.x === 'DPL'
+      tile.x === 'DPL'||
+      tile.x === 'DPT'||
+      tile.x === 'DPB'||
+      tile.x === 'DPR'||
+      tile.x === 'DR'
     ) {
       this.playerX += (this.CurrentKey.left + this.CurrentKey.right) * this.playerSpeed;
     }
@@ -158,15 +200,19 @@ export class GameComponent implements OnInit {
       tile.y === 'DL' ||
       tile.y === 'DB' ||
       tile.y === 'DT' ||
-      tile.y === 'DPL'
+      tile.y === 'DPL'||
+      tile.y === 'DPT'||
+      tile.y === 'DPB'||
+      tile.y === 'DPR'||
+      tile.y === 'DR'
     ) {
       this.playerY -= (this.CurrentKey.up + this.CurrentKey.down) * this.playerSpeed;
     }
 
-    const lineThickness = 2;
-    const lineDensity = 1200;
+    const lineThickness = 1;
+    const lineDensity = 1650;
 
-    let type = 'inside';
+    let type = 'reverse1';
 
     if (type === 'inside') {
       for (let angle = 0; angle <= 360; angle += 360 / lineDensity) {
@@ -200,27 +246,171 @@ export class GameComponent implements OnInit {
       }
       ctx.stroke();
     }
+    if (type === 'fill') {
+      ctx.beginPath();
+      ctx.fillStyle = 'black'; // Set the fill color to black
+    
+      for (let angle = 0; angle <= 360; angle += 360 / lineDensity) {
+        const radians = (angle * Math.PI) / 180;
+        this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+    
+        const endX = this.playerX + this.lineLength * Math.cos(radians);
+        const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+    
+        ctx.lineTo(endX, endY);
+      }
+    
+      // Close the shape
+      ctx.lineTo(this.playerX, this.playerY - 60);
+      ctx.closePath();
+    
+      ctx.fill(); // Fill the shape with black
+    }
+    if (type === 'reverse1') {
+      ctx.beginPath();
+      //ctx.moveTo(this.playerX, this.playerY - 60);
+      ctx.fillStyle = 'black';
+      //let firstline = calculateLineLength(this.playerX, this.playerY, 0)
+      
+      
+      // ctx.lineTo(0,0)
+      // ctx.lineTo(0,canvas.height)
+      // ctx.lineTo(canvas.width,this.playerY-60)
+      // ctx.lineTo(canvas.width,canvas.height)
+      // ctx.lineTo(canvas.width,0)
+      // ctx.lineTo(canvas.width,canvas.height)
+      // ctx.lineTo(0,0)
+      // ctx.lineTo(0,canvas.height)
+      // ctx.lineTo(canvas.width,this.playerY-60)
+      //ctx.lineTo(this.playerX+firstline+1,this.playerY)
+      ctx.lineTo(canvas.width,this.playerY-60)
+      // ctx.lineTo(0,0)
+      for (let angle = 0; angle <= 360; angle += 360 / lineDensity) {
+        const radians = (angle * Math.PI) / 180;
+        this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+        this.lineLength+= 0
+        const endX = this.playerX + this.lineLength * Math.cos(radians);
+        const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = lineThickness;
+        ctx.strokeStyle = 'black';
+      }
+      for (let angle = 360; angle >= 0; angle -= 360 / lineDensity) {
+        const radians = (angle * Math.PI) / 180;
+        this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+        this.lineLength+= 2000
+        const endX = this.playerX + this.lineLength * Math.cos(radians);
+        const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = lineThickness;
+        ctx.strokeStyle = 'black';
+      }
+      // ctx.lineTo(0,0)
+      // ctx.lineTo(canvas.width,0)
+      // ctx.lineTo(canvas.width,canvas.height)
+      // ctx.lineTo(0,canvas.height)
+      // ctx.lineTo(0,0)
+      //ctx.lineTo(canvas.width,this.playerY-10)
+      ctx.stroke();
+      ctx.fill()
+    }
+    if (type === 'reverse2') {
+      ctx.beginPath();
+      //ctx.moveTo(this.playerX, this.playerY - 60);
+      ctx.fillStyle = 'brown';
+      let firstline = calculateLineLength(this.playerX, this.playerY, 0)
+      //ctx.lineTo(this.playerX+firstline,this.playerY)
+      ctx.lineTo(0,0)
+      ctx.lineTo(0,canvas.height)
+      ctx.lineTo(canvas.width,canvas.height)
+      ctx.lineTo(canvas.width,0)
+      ctx.lineTo(0,0)
+      
+      
+      // ctx.lineTo(0,0)
+      for (let angle = 0; angle <= 360; angle += 360 / lineDensity) {
+        const radians = (angle * Math.PI) / 180;
+        this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+        this.lineLength+= 15
+        const endX = this.playerX + this.lineLength * Math.cos(radians);
+        const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = lineThickness;
+        ctx.strokeStyle = 'red';
+      }
+      // ctx.lineTo(0,0)
+      // ctx.lineTo(canvas.width,0)
+      // ctx.lineTo(canvas.width,canvas.height)
+      // ctx.lineTo(0,canvas.height)
+      // ctx.lineTo(0,0)
+      
+      //ctx.stroke();
+      ctx.fill()
+    }
+    if (type === 'reverse3') {
+      ctx.beginPath();
+      //ctx.moveTo(this.playerX, this.playerY - 60);
+      ctx.fillStyle = 'brown';
+      let firstline = calculateLineLength(this.playerX, this.playerY, 0)
+      //ctx.lineTo(this.playerX+firstline,this.playerY)
+      ctx.lineTo(0,0)
+      ctx.lineTo(0,canvas.height)
+      ctx.lineTo(canvas.width,canvas.height)
+      ctx.lineTo(canvas.width,0)
+      ctx.lineTo(0,0)
+      
+      
+      // ctx.lineTo(0,0)
+      for (let angle = 0; angle <= 360; angle += 360 / lineDensity) {
+        const radians = (angle * Math.PI) / 180;
+        this.lineLength = calculateLineLength(this.playerX, this.playerY, radians);
+        //this.lineLength+= 20
+        const endX = this.playerX + this.lineLength * Math.cos(radians);
+        const endY = this.playerY - 60 + this.lineLength * Math.sin(radians);
+
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = lineThickness;
+        ctx.strokeStyle = 'black';
+      }
+      // ctx.lineTo(0,0)
+      // ctx.lineTo(canvas.width,0)
+      // ctx.lineTo(canvas.width,canvas.height)
+      // ctx.lineTo(0,canvas.height)
+      // ctx.lineTo(0,0)
+      
+      ctx.stroke();
+      ctx.fill()
+    }
 
     function calculateLineLength(x, y, radians) {
       let lineLength = 0;
       let a = 0;
       let cx = x;
       let cy = y;
-
+      
       let btile = findTile(cx, cy, keymap);
       while (
         btile === 'F' ||
         btile === 'DL' ||
         btile === 'DB' ||
         btile === 'DT' ||
-        btile === 'DPL'
+        btile === 'DPL'||
+        btile === 'DPT'||
+        btile === 'DPB'||
+        btile === 'DPR'||
+        btile === 'DR'
       ) {
         btile = findTile(cx + a * Math.cos(radians), cy + a * Math.sin(radians), keymap);
         a++;
-      }
-
+      }     
+      
+      //console.log(b)
       return lineLength + a;
     }
+
   }
 
   draw(): void {
